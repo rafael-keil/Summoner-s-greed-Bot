@@ -1,80 +1,260 @@
 import pyautogui
 import time
 
-TK_NORMAL = (2073, 415)
-TK_HARD = (2268, 415)
-TK_NIGHTMARE = (2415, 415)
-RC_NORMAL = (2073, 625)
-RC_HARD = (2268, 625)
-RC_NIGHTMARE = (2415, 625)
-JR_NORMAL = (2073, 835)
-JR_HARD = (2268, 835)
-JR_NIGHTMARE = (2415, 835)
+screen = pyautogui.screenshot()
+
+TK_NORMAL = (1100, 420)
+TK_HARD = (1250, 420)
+TK_NIGHTMARE = (1450, 420)
+RC_NORMAL = (1100, 620)
+RC_HARD = (1250, 620)
+RC_NIGHTMARE = (1450, 620)
+JR_NORMAL = (1100, 820)
+JR_HARD = (1250, 820)
+JR_NIGHTMARE = (1450, 820)
+
+ALL_MAPS = [
+    TK_NORMAL,
+    TK_HARD,
+    TK_NIGHTMARE,
+    RC_NORMAL,
+    RC_HARD,
+    RC_NIGHTMARE,
+    JR_NORMAL,
+]
+
+MONSTER_POSITIONS = [
+    (1150, 270), (1270, 270), (1385, 270),
+    (1150, 445), (1270, 445), (1385, 445),
+    (1150, 620), (1270, 620), (1385, 620),
+]
+
+STANDARD_LOADOUT = [
+    15, 26, 16,
+    23, 25, 22,
+    32, 33, 24
+]
+
+ICE_LOADOUT = [
+    15, 22, 16,
+    16, 29, 10,
+    32, 33, 19
+]
+
+FIRE_LOADOUT = [
+    15, 26, 16,
+    23, 25, 22,
+    32, 33, 24
+]
+
+LIGHTNING_LOADOUT = [
+    15, 26, 16,
+    23, 25, 22,
+    32, 33, 24
+]
+
+TOTAL_MONSTERS = 35
 
 
-def defaultClick(x, y):
-    pyautogui.click(x, y)
+def defaultClick(pos):
+    pyautogui.click(pos[0], pos[1])
     time.sleep(0.2)
 
 
-def selectMap():
-    pyautogui.click(JR_HARD)
+def isPixelThisColor(xy, rgb):
+    return screen.getpixel(xy) == rgb
+
+
+def selectMap(nextMap, fixLoadout, loadout):
+    defaultClick(nextMap)
     time.sleep(1.5)
-    defaultClick(2260, 990)
+    if fixLoadout:
+        selectLoadout(loadout)
+    defaultClick((1266, 993))
+
+
+def getAchievments():
+    if isPixelThisColor((1491, 132), (24, 207, 244)):
+        defaultClick((1473, 120))
+        defaultClick((1415, 211))
+
+        # verificando se é o segundo ou terceiro
+        global screen
+        screen = pyautogui.screenshot()
+        if not isPixelThisColor((1414, 363), (156, 62, 36)):
+            defaultClick((1414, 363))
+        if not isPixelThisColor((1411, 486), (156, 62, 36)):
+            defaultClick((1411, 486))
+
+        defaultClick((1501, 99))
+        screen = pyautogui.screenshot()
+
+
+def rollMonsters():
+    if isPixelThisColor((1061, 183), (24, 207, 244)):
+        defaultClick((1020, 202))
+        defaultClick((1087, 991))
+        defaultClick((1036, 148))
+        defaultClick((1275, 740))
+        defaultClick((1507, 71))
+
+
+def passAction(x, y, delta, timer):
+    pyautogui.moveTo(x, y)
+    pyautogui.mouseDown()
+    pyautogui.move(0, delta, timer)
+    time.sleep(0.4)
+    pyautogui.mouseUp()
+
+
+def passMonster(times):
+    i = 0
+    while i < times:
+        if times - i >= 6:
+            passAction(1050, 970, -915, 0.301)
+            i += 6
+        elif times - i >= 5:
+            passAction(1050, 860, -795, 0.3)
+            i += 5
+        elif times - i >= 4:
+            passAction(1050, 750, -632, 0.3)
+            pyautogui.mouseUp()
+            i += 4
+        elif times - i >= 3:
+            passAction(1050, 610, -475, 0.3)
+            pyautogui.mouseUp()
+            i += 3
+        elif times - i >= 2:
+            passAction(1050, 490, -335, 0.2)
+            pyautogui.mouseUp()
+            i += 2
+        else:
+            passAction(1050, 370, -170, 0.2)
+            i += 1
+
+
+def selectLoadout(loadout):
+    for pos in range(9):
+        defaultClick((MONSTER_POSITIONS[pos][0],
+                      MONSTER_POSITIONS[pos][1] + 80))
+        defaultClick(MONSTER_POSITIONS[pos])
+
+        monster = loadout[pos]
+        delta = max(monster - (TOTAL_MONSTERS - 5), 0)
+        passMonster(min(monster, (TOTAL_MONSTERS - 5)))
+        defaultClick((1128, 240 + delta * 130))
+        defaultClick((1513, 1004))
+
+
+def normalWave(nextMap, fixLoadout):
+
+    selectMap(nextMap, fixLoadout, STANDARD_LOADOUT)
+
+    i = 0
+    while i < 100:
+        time.sleep(0.1)
+        global screen
+        screen = pyautogui.screenshot()
+
+        getAchievments()
+        rollMonsters()
+
+        # venda
+        if isPixelThisColor((1230, 585), (239, 43, 53)):
+            # verifica se não é anuncio
+            screen = pyautogui.screenshot()
+            if isPixelThisColor((1304, 584), (255, 255, 255)):
+                defaultClick((1230, 585))
+            else:
+                defaultClick((1304, 584))
+                time.sleep(0.2)
+                defaultClick((1304, 584))
+
+        # perdendo fase
+        if isPixelThisColor((1266, 798), (20, 9, 6)):
+            time.sleep(2)
+            defaultClick((1133, 784))
+            defaultClick((1148, 722))
+            break
+
+        # ganhando fase
+        if isPixelThisColor((1246, 607), (29, 76, 71)):
+            defaultClick((1259, 798))
+            break
+
+        # Fail Safety
+        i += 1
+        if i == 90:
+            defaultClick((1497, 96))
+            i = 0
+
+
+def farmBlueCoin():
+
+    # Selecionando fase
+    defaultClick((1391, 146))
+    defaultClick((1389, 483))
+
+    # Verirfica se precisa gastar gemas
+    global screen
+    screen = pyautogui.screenshot()
+
+    if isPixelThisColor((1350, 550), (252, 161, 255)):
+        defaultClick((1350, 550))
+        defaultClick((1389, 483))
+
+    # Refaz o loadout
+    time.sleep(1.5)
+    selectLoadout(STANDARD_LOADOUT)
+    defaultClick((1256, 993))
+
+    i = 0
+    while i < 100:
+        time.sleep(0.1)
+        screen = pyautogui.screenshot()
+
+        getAchievments()
+        rollMonsters()
+
+        # verifica automatico
+        if isPixelThisColor((1030, 780), (161, 60, 31)):
+            defaultClick((1030, 780))
+
+        # verificando caso derrota
+        if isPixelThisColor((1243, 605), (65, 42, 26)):
+            time.sleep(2)
+            defaultClick((1143, 785))
+            break
+        # verificando caso vitoria
+        if isPixelThisColor((1260, 597), (29, 78, 73)):
+            time.sleep(2)
+            defaultClick((1401, 825))
+            break
+
+        # Fail Safety
+        i += 1
+        if i == 90:
+            defaultClick((1497, 96))
+            i = 0
 
 
 def main():
 
-    i = 0
-    while i < 10:
-        time.sleep(0.2)
-        screenshot = pyautogui.screenshot()
+    # passMonster(7)
+    # selectLoadout()
 
-        def isPixelThisColor(xy, rgb):
-            return screenshot.getpixel(xy) == rgb
+    # normalWave()
 
-        # pegar recompensas
-        if isPixelThisColor((2470, 134), (24, 207, 244)):
-            defaultClick(2453, 116)
-            defaultClick(2459, 213)
+    # for i in range(30):
+    #     print("Blue Coin: " + str(i+1))
+    #     farmBlueCoin()
 
-            # verificando se é o segundo ou terceiro
-            achScreenshot = pyautogui.screenshot()
-            if achScreenshot.getpixel((2451, 360)) != (156, 62, 36):
-                defaultClick(2451, 360)
-            if achScreenshot.getpixel((2448, 486)) != (156, 62, 36):
-                defaultClick(2448, 486)
+    # for nextMap in ALL_MAPS:
+    #     normalWave(nextMap)
 
-            defaultClick(2478, 104)
-
-        # rodar montros
-        if isPixelThisColor((2042, 182), (24, 207, 244)):
-            defaultClick(1999, 206)
-            defaultClick(2064, 985)
-            defaultClick(2021, 152)
-            defaultClick(2248, 728)
-            defaultClick(2482, 75)
-
-        # fechar anuncio
-        if isPixelThisColor((2129, 614), (231, 38, 53)):
-            # verifica se não é anuncio
-            sellScreenshot = pyautogui.screenshot()
-            if sellScreenshot.getpixel((2299, 585)) == (246, 252, 254):
-                defaultClick(2129, 614)
-            else:
-                defaultClick(2344, 578)
-                defaultClick(2344, 578)
-
-        # reiniciar fase
-        if isPixelThisColor((2239, 779), (20, 9, 6)):
-            time.sleep(2)
-            defaultClick(2112, 792)
-            defaultClick(2116, 704)
-            selectMap()
-
-        if isPixelThisColor((2018, 566), (23, 55, 53)):
-            defaultClick(2248, 807)
-            selectMap()
+    for i in range(5000):
+        print("Normal Run: " + str(i+1))
+        normalWave(JR_HARD, False)
 
 
 if __name__ == "__main__":
